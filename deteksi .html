@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Cat AI Detector</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #eef5f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 3px 10px #00000020;
+        }
+
+        h2 {
+            color: #168aad;
+        }
+
+        button {
+            background: #168aad;
+            color: white;
+            border: none;
+            padding: 13px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin: 18px 0;
+            font-weight: bold;
+        }
+
+        #webcam-container {
+            margin: 15px auto;
+        }
+
+        #label-container {
+            margin-top: 15px;
+            line-height: 2;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>🐱 SMART CAT AI DETECTOR</h2>
+
+    <p>Sistem Pendeteksi Kucing Otomatis</p>
+
+    <button id="startButton" onclick="init()">
+        START KAMERA
+    </button>
+
+    <div id="status">Menunggu kamera...</div>
+
+    <div id="webcam-container"></div>
+
+    <div id="label-container"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<script>
+
+// =================================
+// 1. PENGATURAN AI
+// =================================
+
+const MODEL_URL =
+"https://teachablemachine.withgoogle.com/models/QSTGsrGrT/";
+
+// =================================
+// 2. PENGATURAN MQTT EMQX
+// =================================
+
+const MQTT_URL =
+"wss://broker.emqx.io:8084/mqtt";
+
+const MQTT_TOPIC =
+"smartcat/uas-demo-2026/cat-detection-7319";
+
+// =================================
+// 3. VARIABEL SISTEM
+// =================================
+
+let model;
+let webcam;
+let labelContainer;
+let maxPredictions;
+
+let mqttClient = null;
+let lastSent = "";
+let started = false;
+
+// =================================
+// 4. MENJALANKAN KAMERA DAN MQTT
+// =================================
+
+async function init() {
+
+    if (started) return;
+
+    started = true;
+
+    document.getElementById("startButton").disabled = true;
+
+    document.getElementById("status").innerText =
+        "Menghubungkan ke EMQX...";
+
+    mqttClient = mqtt.connect(MQTT_URL, {
+        clientId: "SmartCatAI_" +
+            Math.random().toString(16).slice(2, 10),
+
+        clean: true,
+        connectTimeout: 10000,
+        reconnectPeriod: 3000
+    });
+
+    mqttClient.on("connect", function () {
+
+        console.log("EMQX TERHUBUNG!");
+
+        document.getElementById("status").innerText =
+            "MQTT terhubung - Memuat model AI...";
+
+        lastSent = "";
+
+    });
+
+    mqttClient.on("offline", function () {
+
+        console.log("MQTT OFFLINE");
+
+        document.getElementById("status").innerText =
+            "MQTT terputus - Mencoba menghubungkan kembali...";
+
+    });
+
+    mqttClient.on("error", function (error) {
+
+        console.log("MQTT ERROR:", error);
+
+    });
+
+    try {
+
+        // MEMUAT MODEL TEACHABLE MACHINE
+
+        const modelURL = MODEL_URL + "model.json";
+
+        const metadataURL = MODEL_URL + "metadata.json";
+
+        model = await tmImage.load(
+            modelURL,
+            metadataURL
+        );
+
+        maxPredictions = model.getTotalClasses();
+
+        // MENGAKTIFKAN KAMERA
+
+        webcam = new tmImage.Webcam(200, 200, true);
+
+        await webcam.setup();
+
+        await webcam.play();
+
+        document.getElementById("webcam-container")
+            .appendChild(webcam.canvas);
+
+        // MENAMPILKAN LABEL AI
+
+        labelContainer =
+            document.getElementById("label-container");
+
+        for (let i = 0; i < maxPredictions; i++) {
+
+            labelContainer.appendChild(
+                document.createElement("div")
+            );
+
+        }
+
+        document.getElementById("status").innerText =
+            "Kamera aktif - Sistem mulai mendeteksi";
+
+        window.requestAnimationFrame(loop);
+
+    } catch (error) {
+
+        console.log("ERROR:", error);
+
+        document.getElementById("status").innerText =
+            "Gagal mengaktifkan kamera atau model AI";
+
+        started = false;
+
+        document.getElementById("startButton").disabled = false;
+
+    }
+
+}
+
+// =================================
+// 5. PROSES DETEKSI BERULANG
+// =================================
+
+async function loop() {
+
+    if (!started) return;
+
+    webcam.update();
+
+    await predict();
+
+    window.requestAnimationFrame(loop);
+
+}
+
+// =================================
+// 6. PREDIKSI KUCING
+// =================================
+
+async function predict() {
+
+    const prediction =
+        await model.predict(webcam.canvas);
+
+    let bestPrediction = prediction[0];
+
+    for (let i = 0; i < maxPredictions; i++) {
+
+        const classPrediction =
+            prediction[i].className + ": " +
+            prediction[i].probability.toFixed(2);
+
+        labelContainer.childNodes[i].innerHTML =
+            classPrediction;
+
+        if (prediction[i].probability >
+            bestPrediction.probability) {
+
+            bestPrediction = prediction[i];
+
+        }
+
+    }
+
+    // NORMALISASI NAMA KELAS
+
+    const className =
+        bestPrediction.className
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, "");
+
+    const confidence =
+        bestPrediction.probability;
+
+    // HASIL DETEKSI
+
+    let aiResult = "NOT CAT";
+
+    if (
+        className === "CAT" &&
+        confidence >= 0.70
+    ) {
+
+        aiResult = "CAT";
+
+    }
+
+    // TAMPILKAN HASIL DETEKSI
+
+    document.getElementById("status").innerText =
+        aiResult === "CAT"
+            ? "🐱 CAT DETECTED - KUCING TERDETEKSI"
+            : "NOT CAT - BUKAN KUCING";
+
+    // KIRIM HASIL KE DASHBOARD
+
+    if (
+        mqttClient &&
+        mqttClient.connected &&
+        aiResult !== lastSent
+    ) {
+
+        mqttClient.publish(
+            MQTT_TOPIC,
+            aiResult,
+            { qos: 0, retain: false }
+        );
+
+        lastSent = aiResult;
+
+        console.log(
+            "HASIL AI DIKIRIM:",
+            aiResult
+        );
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>

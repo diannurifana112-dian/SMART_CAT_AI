@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cat Water Fountain</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>🐱 Smart Cat Water Fountain</h1>
+    <p>Monitoring dan Kontrol Air Minum Kucing</p>
+  </header>
+
+  <main>
+    <section class="connection">
+      Status koneksi:
+      <strong id="connection">Menghubungkan...</strong>
+    </section>
+
+    <section class="dashboard">
+      <div class="card">
+        <h3>Deteksi AI</h3>
+        <p id="catStatus">Menunggu data...</p>
+      </div>
+
+      <div class="card">
+        <h3>Kondisi Air</h3>
+        <p id="waterStatus">Menunggu data...</p>
+      </div>
+
+      <div class="card">
+        <h3>Status Pompa</h3>
+        <p id="pumpStatus">Menunggu data...</p>
+      </div>
+    </section>
+
+    <section class="control">
+      <h2>Kontrol Pompa</h2>
+      <button id="onButton" onclick="controlPump('ON')" disabled>
+        NYALAKAN POMPA
+      </button>
+
+      <button id="offButton" onclick="controlPump('OFF')" disabled>
+        MATIKAN POMPA
+      </button>
+
+      <p id="message">Menunggu koneksi perangkat...</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Proyek UAS IoT - Smart Cat Water Fountain</p>
+  </footer>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef5f8;
+  color: #263746;
+}
+
+header {
+  background: #168aad;
+  color: white;
+  text-align: center;
+  padding: 25px 12px;
+}
+
+header h1 {
+  margin: 0 0 10px;
+  font-size: 25px;
+}
+
+main {
+  max-width: 850px;
+  margin: 25px auto;
+  padding: 15px;
+}
+
+.connection, .card, .control {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px #00000012;
+}
+
+#connection {
+  color: #d97706;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.card {
+  text-align: center;
+}
+
+.card h3 {
+  color: #168aad;
+}
+
+.card p {
+  font-weight: bold;
+}
+
+.control {
+  text-align: center;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 7px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  background: #168aad;
+}
+
+button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+#offButton {
+  background: #dc4545;
+}
+
+#message {
+  color: #52616b;
+}
+
+footer {
+  text-align: center;
+  padding: 15px;
+  color: #64748b;
+}
+
+@media (max-width: 600px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  header h1 {
+    font-size: 21px;
+  }
+
+  button {
+    width: 100%;
+    margin: 6px 0;
+  }
+}
